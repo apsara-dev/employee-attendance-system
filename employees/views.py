@@ -52,8 +52,10 @@ def employee_list(request):
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def attendance_list(request):
+
+    profile = request.user.userprofile
+
     if request.method == 'GET':
-        profile = request.user.userprofile
 
         if profile.role == 'Admin':
             attendance_records = Attendance.objects.all()
@@ -74,6 +76,13 @@ def attendance_list(request):
         return Response(serializer.data)
 
     elif request.method == 'POST':
+
+        if profile.role != 'Admin':
+            return Response(
+                {'error': 'Only Admin can mark attendance.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         serializer = AttendanceSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -87,28 +96,6 @@ def attendance_list(request):
             serializer.errors,
             status=status.HTTP_400_BAD_REQUEST
         )
-
-        serializer = AttendanceSerializer(
-            attendance_records, many=True
-        )
-        return Response(serializer.data)
-
-    elif request.method == 'POST':
-        serializer = AttendanceSerializer(data=request.data)
-
-        if serializer.is_valid():
-            serializer.save()
-            return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED
-            )
-
-        return Response(
-            serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-
 
 
 
@@ -199,11 +186,18 @@ def update_leave_status(request, leave_id):
     serializer = LeaveSerializer(leave)
     return Response(serializer.data, status=status.HTTP_200_OK)
 @api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
 def employee_detail(request, employee_id):
-    employee = get_object_or_404(
-        Employee,
-        id=employee_id
-    )
+
+    profile = request.user.userprofile
+
+    if profile.role != 'Admin':
+        return Response(
+            {'error': 'Only Admin can manage employee records.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    employee = get_object_or_404(Employee, id=employee_id)
 
     if request.method == 'GET':
         serializer = EmployeeSerializer(employee)
@@ -230,9 +224,18 @@ def employee_detail(request, employee_id):
             {'message': 'Employee deleted successfully.'},
             status=status.HTTP_200_OK
         )
-
 @api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
 def attendance_detail(request, attendance_id):
+
+    profile = request.user.userprofile
+
+    if profile.role != 'Admin':
+        return Response(
+            {'error': 'Only Admin can manage attendance records.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
     attendance = get_object_or_404(
         Attendance,
         id=attendance_id
@@ -264,7 +267,17 @@ def attendance_detail(request, attendance_id):
             status=status.HTTP_200_OK
         )
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def monthly_report(request):
+
+    profile = request.user.userprofile
+
+    if profile.role != 'Admin':
+        return Response(
+            {'error': 'Only Admin can access monthly reports.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
     month = request.query_params.get('month')
 
     if not month:
@@ -281,7 +294,7 @@ def monthly_report(request):
 
     except ValueError:
         return Response(
-            {'error': 'Invalid month. Use YYYY-MM format, for example 2026-10.'},
+            {'error': 'Invalid month. Use YYYY-MM format.'},
             status=status.HTTP_400_BAD_REQUEST
         )
 

@@ -406,26 +406,32 @@ const handleExportCSV = () => {
 }
 
   useEffect(() => {
-    axios.get('http://127.0.0.1:8000/api/employees/')
-      .then(response => {
-        setEmployees(response.data)
-      })
-      .catch(error => {
-        console.error('Error fetching employees:', error)
-      })
-   }, [])
+  if (!loggedInUser) return
+
+  axios.get('http://127.0.0.1:8000/api/employees/')
+    .then(response => {
+      setEmployees(response.data)
+    })
+    .catch(error => {
+      console.error('Error fetching employees:', error)
+    })
+}, [loggedInUser])
 
   useEffect(() => {
-    axios.get('http://127.0.0.1:8000/api/attendance/')
-      .then(response => {
-        setAttendance(response.data)
-      })
-      .catch(error => {
-        console.error('Error fetching attendance:', error)
-      })
-  }, [])
+  if (!loggedInUser) return
+
+  axios.get('http://127.0.0.1:8000/api/attendance/')
+    .then(response => {
+      setAttendance(response.data)
+    })
+    .catch(error => {
+      console.error('Error fetching attendance:', error)
+    })
+}, [loggedInUser])
   
 useEffect(() => {
+  if (!loggedInUser) return
+
   axios.get('http://127.0.0.1:8000/api/leaves/')
     .then(response => {
       setLeaves(response.data)
@@ -433,7 +439,7 @@ useEffect(() => {
     .catch(error => {
       console.error('Error fetching leaves:', error)
     })
-}, [])
+}, [loggedInUser])
 
   const today = new Date().toLocaleDateString('en-CA')
 
@@ -562,9 +568,19 @@ return (
 >
   Monthly Reports
 </button>
+              <button
+          onClick={() => {
+            localStorage.removeItem('accessToken')
+            localStorage.removeItem('refreshToken')
+            delete axios.defaults.headers.common['Authorization']
+            setLoggedInUser(null)
+          }}
+          className="logout-button"
+        >
+          Logout
+        </button>
       </nav>
     </aside>
-
     <div className="main-area">
       <header className="header">
         <h1>Employee Attendance System</h1>

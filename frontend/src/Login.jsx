@@ -13,26 +13,29 @@ function Login({ onLogin }) {
     setError('')
     setLoading(true)
 
-    try {
-      const response = await axios.post(
-        'http://127.0.0.1:8000/api/login/',
-        { username, password }
-      )
+   try {
+  const response = await axios.post(
+    'http://127.0.0.1:8000/api/token/',
+    { username, password }
+  )
 
-      localStorage.setItem('accessToken', response.data.access)
-      localStorage.setItem('refreshToken', response.data.refresh)
+  localStorage.setItem('accessToken', response.data.access)
+  localStorage.setItem('refreshToken', response.data.refresh)
 
-      onLogin(response.data)
-    } catch (error) {
-      setError(
-        error.response?.data?.error ||
-        'Login failed. Please check your username and password.'
-      )
-    } finally {
-      setLoading(false)
-    }
+  axios.defaults.headers.common['Authorization'] =
+    `Bearer ${response.data.access}`
+
+  onLogin({ ...response.data, username })
+
+} catch (error) {
+  setError(
+    error.response?.data?.error ||
+    'Login failed. Please check your username and password.'
+  )
+} finally {
+  setLoading(false)
+}
   }
-
   return (
     <div className="login-container">
       <form className="login-form" onSubmit={handleLogin}>
