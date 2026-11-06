@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react'
-import axios from 'axios'
+import axios from './axiosConfig'
 import './App.css'
 import Login from './Login'
 import EmployeeDashboard from './EmployeeDashboard'

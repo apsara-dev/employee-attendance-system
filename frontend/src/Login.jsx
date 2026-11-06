@@ -1,6 +1,6 @@
 
 import { useState } from 'react'
-import axios from 'axios'
+import axios from './axiosConfig'
 
 function Login({ onLogin }) {
   const [username, setUsername] = useState('')

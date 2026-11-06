@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react'
-import axios from 'axios'
+import axios from './axiosConfig'
 
 function EmployeeDashboard({ user, onLogout }) {
   const [attendance, setAttendance] = useState([])
