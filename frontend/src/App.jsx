@@ -33,11 +33,11 @@ const handleDeleteEmployee = async (employee) => {
 
   try {
     await axios.delete(
-      `http://127.0.0.1:8000/api/employees/${employee.id}/`
+      `/api/employees/${employee.id}/`
     )
 
     const response = await axios.get(
-      'http://127.0.0.1:8000/api/employees/'
+      '/api/employees/'
     )
 
     setEmployees(response.data)
@@ -67,12 +67,12 @@ const handleUpdateEmployee = async (event) => {
 
   try {
     await axios.put(
-      `http://127.0.0.1:8000/api/employees/${editingEmployee.id}/`,
+      `/api/employees/${editingEmployee.id}/`,
       formData
     )
 
     const response = await axios.get(
-      'http://127.0.0.1:8000/api/employees/'
+      '/api/employees/'
     )
 
     setEmployees(response.data)
@@ -106,7 +106,7 @@ const handleAddEmployee = async (event) => {
 
   try {
     await axios.post(
-      'http://127.0.0.1:8000/api/employees/',
+      '/api/employees/',
       formData
     )
 
@@ -123,7 +123,7 @@ const handleAddEmployee = async (event) => {
     setShowForm(false)
 
     const response = await axios.get(
-      'http://127.0.0.1:8000/api/employees/'
+      '/api/employees/'
     )
 
     setEmployees(response.data)
@@ -176,12 +176,12 @@ const handleLeaveStatus = async (leaveId, newStatus) => {
 
   try {
     await axios.patch(
-      `http://127.0.0.1:8000/api/leaves/${leaveId}/status/`,
+      `/api/leaves/${leaveId}/status/`,
       { status: newStatus }
     )
 
     const response = await axios.get(
-      'http://127.0.0.1:8000/api/leaves/'
+      '/api/leaves/'
     )
 
     setLeaves(response.data)
@@ -213,7 +213,7 @@ const handleSubmitLeave = async (event) => {
   }
 
   try {
-    await axios.post('http://127.0.0.1:8000/api/leaves/', {
+    await axios.post('/api/leaves/', {
       employee: Number(leaveForm.employee),
       start_date: leaveForm.start_date,
       end_date: leaveForm.end_date,
@@ -221,7 +221,7 @@ const handleSubmitLeave = async (event) => {
     })
 
     const response = await axios.get(
-      'http://127.0.0.1:8000/api/leaves/'
+      '/api/leaves/'
     )
 
     setLeaves(response.data)
@@ -253,7 +253,7 @@ const handleMarkAttendance = async (event) => {
 
   try {
     await axios.post(
-      'http://127.0.0.1:8000/api/attendance/',
+      '/api/attendance/',
       {
         employee: Number(attendanceForm.employee),
         date: attendanceForm.date,
@@ -264,7 +264,7 @@ const handleMarkAttendance = async (event) => {
     alert('Attendance marked successfully!')
 
     const response = await axios.get(
-      'http://127.0.0.1:8000/api/attendance/'
+      '/api/attendance/'
     )
 
     setAttendance(response.data)
@@ -300,7 +300,7 @@ const handleUpdateAttendance = async (event) => {
 
   try {
     await axios.put(
-      `http://127.0.0.1:8000/api/attendance/${editingAttendance.id}/`,
+      `/api/attendance/${editingAttendance.id}/`,
       {
         employee: editingAttendance.employee,
         date: attendanceEditForm.date,
@@ -309,7 +309,7 @@ const handleUpdateAttendance = async (event) => {
     )
 
     const response = await axios.get(
-      'http://127.0.0.1:8000/api/attendance/'
+      '/api/attendance/'
     )
 
     setAttendance(response.data)
@@ -342,7 +342,7 @@ const handleDeleteAttendance = async (record) => {
 
   try {
     await axios.delete(
-      `http://127.0.0.1:8000/api/attendance/${record.id}/`
+      `/api/attendance/${record.id}/`
     )
 
     setAttendance((previousAttendance) =>
@@ -408,7 +408,7 @@ const handleExportCSV = () => {
   useEffect(() => {
   if (!loggedInUser) return
 
-  axios.get('http://127.0.0.1:8000/api/employees/')
+  axios.get('/api/employees/')
     .then(response => {
       setEmployees(response.data)
     })
@@ -420,7 +420,7 @@ const handleExportCSV = () => {
   useEffect(() => {
   if (!loggedInUser) return
 
-  axios.get('http://127.0.0.1:8000/api/attendance/')
+  axios.get('/api/attendance/')
     .then(response => {
       setAttendance(response.data)
     })
@@ -432,7 +432,7 @@ const handleExportCSV = () => {
 useEffect(() => {
   if (!loggedInUser) return
 
-  axios.get('http://127.0.0.1:8000/api/leaves/')
+  axios.get('/api/leaves/')
     .then(response => {
       setLeaves(response.data)
     })

@@ -19,14 +19,14 @@ function EmployeeDashboard({ user, onLogout }) {
         }
 
         const attendanceResponse = await axios.get(
-          'http://127.0.0.1:8000/api/attendance/',
-          config
-        )
+  '/api/attendance/',
+  config
+)
 
-        const leaveResponse = await axios.get(
-          'http://127.0.0.1:8000/api/leaves/',
-          config
-        )
+const leaveResponse = await axios.get(
+  '/api/leaves/',
+  config
+)
 
         setAttendance(attendanceResponse.data)
         setLeaves(leaveResponse.data)

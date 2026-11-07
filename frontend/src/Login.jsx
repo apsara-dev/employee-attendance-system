@@ -14,10 +14,10 @@ function Login({ onLogin }) {
     setLoading(true)
 
    try {
-  const response = await axios.post(
-    'http://127.0.0.1:8000/api/token/',
-    { username, password }
-  )
+ const response = await axios.post(
+  '/api/token/',
+  { username, password }
+)
 
   localStorage.setItem('accessToken', response.data.access)
   localStorage.setItem('refreshToken', response.data.refresh)
