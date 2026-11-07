@@ -145,3 +145,4 @@ In `employees/views.py`, the views `employee_detail` (line 201), `attendance_det
 
 ### Solution
 Add `@permission_classes([IsAuthenticated])` above `employee_detail`, `attendance_detail`, and `monthly_report` in `employees/views.py`, and remove the duplicate lines 91–109 in `attendance_list`.
+
