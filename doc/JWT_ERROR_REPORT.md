@@ -1,148 +1,143 @@
-# JWT Authentication Error Report & Solutions
+# Complete Error Report & Solutions Documentation
 
-This report details all the errors related to JWT token authentication and user authorization in the **Employee Attendance System**, along with step-by-step solutions to fix them.
-
----
-
-## Error 1: Missing JWT `Authorization` Header in Admin Requests (`frontend/src/App.jsx`)
-
-### Problem
-When a user logs in via `frontend/src/Login.jsx` (lines 22–23), the JWT tokens are stored in `localStorage`:
-```javascript
-localStorage.setItem('accessToken', response.data.access)
-localStorage.setItem('refreshToken', response.data.refresh)
-```
-In `frontend/src/EmployeeDashboard.jsx` (lines 15–19), the token is properly read and sent in the `Authorization: Bearer ${token}` header.
-
-However, in `frontend/src/App.jsx` (the Admin dashboard), **none** of the `axios` requests (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) include the `Authorization` header. Because the backend views in `employees/views.py` require `@permission_classes([IsAuthenticated])`, Django REST Framework rejects these requests with **`401 Unauthorized`**.
-
-### Solution
-Create a helper function in `frontend/src/App.jsx` to attach the JWT token to every protected `axios` request:
-
-```javascript
-const getAuthConfig = () => {
-  const token = localStorage.getItem('accessToken')
-  return {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  }
-}
-```
-
-Then pass `getAuthConfig()` to your `axios` calls in `frontend/src/App.jsx`:
-
-* **GET requests:**
-  ```javascript
-  axios.get('http://127.0.0.1:8000/api/employees/', getAuthConfig())
-  axios.get('http://127.0.0.1:8000/api/attendance/', getAuthConfig())
-  axios.get('http://127.0.0.1:8000/api/leaves/', getAuthConfig())
-  ```
-* **POST requests:**
-  ```javascript
-  axios.post('http://127.0.0.1:8000/api/employees/', formData, getAuthConfig())
-  axios.post('http://127.0.0.1:8000/api/attendance/', payload, getAuthConfig())
-  axios.post('http://127.0.0.1:8000/api/leaves/', payload, getAuthConfig())
-  ```
-* **PUT / PATCH / DELETE requests:**
-  ```javascript
-  axios.put(`http://127.0.0.1:8000/api/employees/${editingEmployee.id}/`, formData, getAuthConfig())
-  axios.patch(`http://127.0.0.1:8000/api/leaves/${leaveId}/status/`, { status: newStatus }, getAuthConfig())
-  axios.delete(`http://127.0.0.1:8000/api/employees/${employee.id}/`, getAuthConfig())
-  ```
+**Project:** Employee Attendance System  
+**Backend (Render):** `https://employee-attendance-system-i91v.onrender.com`  
+**Frontend (Vercel):** `https://employee-attendance-system-drab.vercel.app`
 
 ---
 
-## Error 2: `useEffect` Fetches Data Before Login (`frontend/src/App.jsx`)
+## 1. Missing JWT `Authorization` Header in Frontend Requests
 
-### Problem
-In `frontend/src/App.jsx` (lines 408–436), the three `useEffect` hooks that fetch `employees`, `attendance`, and `leaves` have an empty dependency array (`[]`) and do not check if a user is logged in:
+### Error Description
+When logging in via `frontend/src/Login.jsx`, the JWT `accessToken` and `refreshToken` were saved to `localStorage`, and `frontend/src/EmployeeDashboard.jsx` manually attached `Authorization: Bearer <token>`. However, the Admin Dashboard (`frontend/src/App.jsx`) sent API requests (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) without the `Authorization` header, causing the Django backend to return **`401 Unauthorized`**.
+
+### Solution Implemented
+Configured a centralized Axios instance in `frontend/src/axiosConfig.js` with:
+1. A **request interceptor** that automatically attaches `Authorization: Bearer ${token}` from `localStorage` to every outgoing API request.
+2. A **response interceptor** that automatically catches `401 Unauthorized` responses when an access token expires, requests a new access token from `/api/token/refresh/`, and retries the failed request seamlessly.
+
 ```javascript
-useEffect(() => {
-  axios.get('http://127.0.0.1:8000/api/employees/')
-  // ...
-}, [])
+axios.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
 ```
-1. These requests run **immediately when the app loads on the Login page** (before the user logs in and before any JWT token exists), resulting in `401 Unauthorized` errors.
-2. When the Admin logs in and `loggedInUser` state changes, these `useEffect` hooks **do not re-run** because `loggedInUser` is not in the dependency array.
 
-### Solution
-Replace the three `useEffect` blocks in `frontend/src/App.jsx` (lines 408–436) with a single `useEffect` that depends on `[loggedInUser]` and only runs when an Admin is logged in:
+---
+
+## 2. Premature API Calls Before User Login (`useEffect` in `App.jsx`)
+
+### Error Description
+1. In `frontend/src/App.jsx`, the `useEffect` hooks fetching `/api/employees/`, `/api/attendance/`, and `/api/leaves/` initially had an empty dependency array (`[]`), causing them to fire on initial page load before the user logged in (`401 Unauthorized`), and preventing them from re-running after login.
+2. When an `Employee` user logged in, `App.jsx` still called `/api/employees/` (which is restricted to Admins), causing a **`403 Forbidden`** error.
+
+### Solution Implemented
+Updated the `useEffect` hooks in `frontend/src/App.jsx` to depend on `[loggedInUser]` and verify that the user is logged in (and has `loggedInUser.role === 'Admin'` before fetching the employee list):
 
 ```javascript
 useEffect(() => {
-  if (!loggedInUser || loggedInUser.role !== 'Admin') {
-    return
-  }
+  if (!loggedInUser || loggedInUser.role !== 'Admin') return
 
-  const config = getAuthConfig()
-
-  axios.get('http://127.0.0.1:8000/api/employees/', config)
+  axios.get('/api/employees/')
     .then(response => setEmployees(response.data))
     .catch(error => console.error('Error fetching employees:', error))
-
-  axios.get('http://127.0.0.1:8000/api/attendance/', config)
-    .then(response => setAttendance(response.data))
-    .catch(error => console.error('Error fetching attendance:', error))
-
-  axios.get('http://127.0.0.1:8000/api/leaves/', config)
-    .then(response => setLeaves(response.data))
-    .catch(error => console.error('Error fetching leaves:', error))
 }, [loggedInUser])
 ```
 
 ---
 
-## Error 3: Backend Crash When Superuser Has No `UserProfile` (`employees/views.py`)
+## 3. Hardcoded Localhost API URL in Frontend (`axiosConfig.js`)
 
-### Problem
-In `login_user` (`employees/views.py`, lines 351–352), a superuser without a `UserProfile` is safely handled and allowed to log in as `'Admin'`:
-```python
-profile = getattr(user, 'userprofile', None)
-role = profile.role if profile else 'Admin' if user.is_superuser else None
-```
-However, in `employee_list` (line 23), `attendance_list` (line 56), `leave_list` (line 118), and `update_leave_status` (line 171), the code directly accesses:
-```python
-profile = request.user.userprofile
-```
-If the logged-in user was created via `python manage.py createsuperuser` and does not have a `UserProfile` row in the database, Django raises a **`500 Internal Server Error` (`RelatedObjectDoesNotExist: User has no userprofile`)** even when a valid JWT token is sent.
+### Error Description
+The frontend was pointing to `http://127.0.0.1:8000` when `VITE_API_URL` was not defined. When running against the deployed Render backend (`https://employee-attendance-system-i91v.onrender.com`), API calls failed to reach the production server.
 
-### Solution
-In `employees/views.py`, safely retrieve the profile and role using `getattr`, just like in `login_user`:
+### Solution Implemented
+Updated `frontend/src/axiosConfig.js` and `frontend/.env` to use the Render backend URL and strip any trailing slashes:
 
-```python
-profile = getattr(request.user, 'userprofile', None)
-role = profile.role if profile else ('Admin' if request.user.is_superuser else None)
-```
-Then check `if role != 'Admin':` instead of `if profile.role != 'Admin':`.
+```javascript
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || 'https://employee-attendance-system-i91v.onrender.com'
+).replace(/\/+$/, '')
 
----
-
-## Error 4: Role Assignment Bug During Registration (`employees/serializers.py`)
-
-### Problem
-In `RegisterSerializer.create` (`employees/serializers.py`, lines 53–55), when a user registers with `role == 'Admin'`, the code mistakenly sets their role to `'Employee'` instead of `'Admin'`:
-```python
-if role == 'Admin':
-    user.userprofile.role = 'Employee'  # <-- Bug: should be 'Admin'
-    user.userprofile.save()
-```
-
-### Solution
-Update line 54 in `employees/serializers.py` to set `'Admin'`:
-```python
-if role == 'Admin':
-    user.userprofile.role = 'Admin'
-    user.userprofile.save()
+axios.defaults.baseURL = API_BASE_URL
 ```
 
 ---
 
-## Error 5: Missing `@permission_classes([IsAuthenticated])` on Detail & Report Views (`employees/views.py`)
+## 4. Admin / Superuser Login `500 Internal Server Error` (`UserProfile.DoesNotExist`)
 
-### Problem
-In `employees/views.py`, the views `employee_detail` (line 201), `attendance_detail` (line 234), and `monthly_report` (line 266) do not have `@permission_classes([IsAuthenticated])`, meaning anyone can edit or delete employees and attendance records without a valid JWT token. Also, `attendance_list` has duplicate unreachable code at lines 91–109.
+### Error Description
+While `CustomTokenObtainPairSerializer` (`employees/serializers.py`) allowed a Django superuser (`admin`) without a `UserProfile` record to log in and receive a JWT token, all protected views in `employees/views.py` directly accessed `profile = request.user.userprofile`. Because the `admin` superuser in the Neon PostgreSQL database did not have a corresponding row in the `UserProfile` table, every API request after login crashed with **`500 Internal Server Error` (`RelatedObjectDoesNotExist: User has no userprofile`)**.
 
-### Solution
-Add `@permission_classes([IsAuthenticated])` above `employee_detail`, `attendance_detail`, and `monthly_report` in `employees/views.py`, and remove the duplicate lines 91–109 in `attendance_list`.
+Additionally, `RegisterSerializer.create` (`employees/serializers.py`) contained a bug where registering with `role == 'Admin'` still assigned `role = 'Employee'`.
 
+### Solution Implemented
+1. Created a `get_user_profile(user)` helper in `employees/views.py` that safely retrieves the user's `UserProfile` and automatically creates one (`role='Admin'` for superusers, `role='Employee'` for standard users) if missing:
+   ```python
+   def get_user_profile(user):
+       profile = getattr(user, 'userprofile', None)
+       if profile is None and user.is_superuser:
+           profile, _ = UserProfile.objects.get_or_create(
+               user=user,
+               defaults={'role': 'Admin'}
+           )
+       elif profile is None:
+           profile, _ = UserProfile.objects.get_or_create(
+               user=user,
+               defaults={'role': 'Employee'}
+           )
+       return profile
+   ```
+2. Created the `UserProfile(role='Admin')` record for the `admin` user directly in the live Neon PostgreSQL database.
+3. Fixed `RegisterSerializer.create` in `employees/serializers.py` to save `user.userprofile.role = 'Admin'` when `role == 'Admin'`.
+
+---
+
+## 5. CORS & `DATABASE_URL` Configuration Issues (`config/settings.py`)
+
+### Error Description
+1. **CORS Block:** The `.env` file only listed `https://employee-attendance-system-drab.vercel.app` in `CORS_ALLOWED_ORIGINS`, blocking local frontend testing from `http://localhost:5173`.
+2. **`DATABASE_URL` Parsing & Connection Hang:** The `DATABASE_URL` string in `.env` contained surrounding quotes (`"..."`) and `&channel_binding=require`, which can cause connection hangs or parsing issues with Neon's connection pooler.
+
+### Solution Implemented
+Updated `config/settings.py`:
+1. Ensured `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, and `CSRF_TRUSTED_ORIGINS` always include the Render backend URL (`employee-attendance-system-i91v.onrender.com`), Vercel frontend URL (`https://employee-attendance-system-drab.vercel.app`), and local development URLs (`http://localhost:5173`, `http://127.0.0.1:5173`).
+2. Sanitized `DATABASE_URL` in `config/settings.py` by stripping quotes and removing `&channel_binding=require`.
+
+---
+
+## 6. Missing `dj_database_url` Package in Local Python Environment
+
+### Error Description
+VS Code / Pylance reported `Cannot find module dj_database_url` at `config/settings.py:L16` because the deployment dependencies listed in `requirements.txt` were not installed in the local Windows Python 3.13 environment.
+
+### Solution Implemented
+Installed the required packages locally:
+```bash
+python -m pip install dj-database-url python-dotenv whitenoise "psycopg[binary]"
+```
+Verified with `python manage.py check`, which passed with 0 errors.
+
+---
+
+## 7. Render Root URL `GET / HTTP/1.1 404` in Logs
+
+### Error Description
+In the Render deployment logs, requests to the root URL (`GET / HTTP/1.1`) returned **`404 Not Found`** because `config/urls.py` only defined routes for `/admin/`, `/api/token/`, `/api/token/refresh/`, and `/api/`.
+
+### Solution Implemented
+Added a root health-check endpoint (`path('', api_root, name='api-root')`) in `config/urls.py` that returns `200 OK`:
+
+```python
+def api_root(request):
+    return JsonResponse({
+        'status': 'ok',
+        'message': 'Employee Attendance System API is live',
+    })
+```
