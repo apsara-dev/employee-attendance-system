@@ -36,10 +36,14 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
 
-ALLOWED_HOSTS = os.getenv(
-    'ALLOWED_HOSTS',
-    '127.0.0.1,localhost'
-).split(',')
+ALLOWED_HOSTS = list(set([
+    host.strip()
+    for host in os.getenv(
+        'ALLOWED_HOSTS',
+        '127.0.0.1,localhost,employee-attendance-system-i91v.onrender.com'
+    ).split(',')
+    if host.strip()
+] + ['127.0.0.1', 'localhost', 'employee-attendance-system-i91v.onrender.com']))
 
 
 # Application definition
@@ -91,9 +95,10 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-DATABASE_URL = os.getenv('DATABASE_URL')
+DATABASE_URL = os.getenv('DATABASE_URL', '').strip().strip('"').strip("'")
 
 if DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace('&channel_binding=require', '').replace('?channel_binding=require&', '?')
     DATABASES = {
         'default': dj_database_url.parse(
             DATABASE_URL,
@@ -161,22 +166,29 @@ MAILERS = {
     },
 }
 
-CORS_ALLOWED_ORIGINS = [
-    origin.strip()
+CORS_ALLOWED_ORIGINS = list(set([
+    origin.strip().rstrip('/')
     for origin in os.getenv(
         'CORS_ALLOWED_ORIGINS',
-        'http://localhost:5173'
+        'http://localhost:5173,http://127.0.0.1:5173,https://employee-attendance-system-drab.vercel.app'
     ).split(',')
     if origin.strip()
-]
-CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
+] + [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'https://employee-attendance-system-drab.vercel.app',
+]))
+CSRF_TRUSTED_ORIGINS = list(set([
+    origin.strip().rstrip('/')
     for origin in os.getenv(
         'CSRF_TRUSTED_ORIGINS',
-        ''
+        'https://employee-attendance-system-drab.vercel.app,https://employee-attendance-system-i91v.onrender.com'
     ).split(',')
     if origin.strip()
-]
+] + [
+    'https://employee-attendance-system-drab.vercel.app',
+    'https://employee-attendance-system-i91v.onrender.com',
+]))
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',

@@ -1,8 +1,23 @@
 
 import axios from 'axios'
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
-  axios.defaults.baseURL = API_BASE_URL
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || 'https://employee-attendance-system-i91v.onrender.com'
+).replace(/\/+$/, '')
+
+axios.defaults.baseURL = API_BASE_URL
+
+// Automatically attach access token to every request
+axios.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
 
 // Automatically handle expired access tokens
 axios.interceptors.response.use(

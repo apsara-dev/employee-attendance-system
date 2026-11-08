@@ -29,6 +29,7 @@ function Login({ onLogin }) {
 
 } catch (error) {
   setError(
+    error.response?.data?.detail ||
     error.response?.data?.error ||
     'Login failed. Please check your username and password.'
   )

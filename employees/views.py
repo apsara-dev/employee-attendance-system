@@ -7,7 +7,7 @@ from django.db.models import Count, Q
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 
-from .models import Employee, Attendance, Leave
+from .models import Employee, Attendance, Leave, UserProfile
 from .serializers import (
     EmployeeSerializer,
     AttendanceSerializer,
@@ -16,11 +16,26 @@ from .serializers import (
 )
 
 
+def get_user_profile(user):
+    profile = getattr(user, 'userprofile', None)
+    if profile is None and user.is_superuser:
+        profile, _ = UserProfile.objects.get_or_create(
+            user=user,
+            defaults={'role': 'Admin'}
+        )
+    elif profile is None:
+        profile, _ = UserProfile.objects.get_or_create(
+            user=user,
+            defaults={'role': 'Employee'}
+        )
+    return profile
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def employee_list(request):
 
-    profile = request.user.userprofile
+    profile = get_user_profile(request.user)
 
     # Only Admin can access employee records
     if profile.role != 'Admin':
@@ -53,7 +68,7 @@ def employee_list(request):
 @permission_classes([IsAuthenticated])
 def attendance_list(request):
 
-    profile = request.user.userprofile
+    profile = get_user_profile(request.user)
 
     if request.method == 'GET':
 
@@ -102,7 +117,7 @@ def attendance_list(request):
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def leave_list(request):
-    profile = request.user.userprofile
+    profile = get_user_profile(request.user)
 
     if request.method == 'GET':
         if profile.role == 'Admin':
@@ -155,7 +170,7 @@ def leave_list(request):
 @permission_classes([IsAuthenticated])
 def update_leave_status(request, leave_id):
 
-    profile = request.user.userprofile
+    profile = get_user_profile(request.user)
 
     # Only Admin can approve or reject leave
     if profile.role != 'Admin':
@@ -189,7 +204,7 @@ def update_leave_status(request, leave_id):
 @permission_classes([IsAuthenticated])
 def employee_detail(request, employee_id):
 
-    profile = request.user.userprofile
+    profile = get_user_profile(request.user)
 
     if profile.role != 'Admin':
         return Response(
@@ -228,7 +243,7 @@ def employee_detail(request, employee_id):
 @permission_classes([IsAuthenticated])
 def attendance_detail(request, attendance_id):
 
-    profile = request.user.userprofile
+    profile = get_user_profile(request.user)
 
     if profile.role != 'Admin':
         return Response(
@@ -270,7 +285,7 @@ def attendance_detail(request, attendance_id):
 @permission_classes([IsAuthenticated])
 def monthly_report(request):
 
-    profile = request.user.userprofile
+    profile = get_user_profile(request.user)
 
     if profile.role != 'Admin':
         return Response(

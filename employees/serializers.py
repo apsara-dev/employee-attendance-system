@@ -79,7 +79,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
 
         if role == 'Admin':
-            user.userprofile.role = 'Employee'
+            user.userprofile.role = 'Admin'
             user.userprofile.save()
 
         return user

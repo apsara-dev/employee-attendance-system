@@ -406,7 +406,7 @@ const handleExportCSV = () => {
 }
 
   useEffect(() => {
-  if (!loggedInUser) return
+  if (!loggedInUser || loggedInUser.role !== 'Admin') return
 
   axios.get('/api/employees/')
     .then(response => {
