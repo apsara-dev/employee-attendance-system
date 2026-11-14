@@ -9,6 +9,9 @@ class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
         fields = '__all__'
+        extra_kwargs = {
+            'employee_id': {'required': False, 'allow_blank': True}
+        }
 
 
 class AttendanceSerializer(serializers.ModelSerializer):
@@ -54,32 +57,47 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return data
 
 class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, min_length=4)
     role = serializers.ChoiceField(
         choices=['Employee', 'Admin'],
+        write_only=True
+    )
+    employee = serializers.PrimaryKeyRelatedField(
+        queryset=Employee.objects.all(),
+        required=False,
+        allow_null=True,
         write_only=True
     )
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'role']
+        fields = ['username', 'email', 'password', 'role', 'employee']
+
+    def validate_employee(self, value):
+        if value and UserProfile.objects.filter(employee=value).exists():
+            raise serializers.ValidationError(
+                'This employee is already linked to an existing user account.'
+            )
+        return value
 
     def create(self, validated_data):
         role = validated_data.pop('role')
+        employee = validated_data.pop('employee', None)
 
         user = User.objects.create_user(
             username=validated_data['username'],
-            email=validated_data['email'],
+            email=validated_data.get('email', ''),
             password=validated_data['password']
         )
 
+        if role == 'Admin':
+            user.is_staff = True
+            user.save(update_fields=['is_staff'])
+
         UserProfile.objects.create(
             user=user,
-            role='Employee'
+            role=role,
+            employee=employee if role == 'Employee' else None
         )
-
-        if role == 'Admin':
-            user.userprofile.role = 'Admin'
-            user.userprofile.save()
 
         return user

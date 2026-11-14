@@ -333,8 +333,37 @@ def monthly_report(request):
             many=True
         ).data
     })
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
 def register_user(request):
+    profile = get_user_profile(request.user)
+
+    # Only an existing logged-in Admin can view or register users
+    if profile.role != 'Admin':
+        return Response(
+            {'error': 'Only an existing Admin can register new users.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    if request.method == 'GET':
+        from django.contrib.auth.models import User
+        users = User.objects.select_related('userprofile', 'userprofile__employee').all().order_by('-id')
+        data = []
+        for u in users:
+            up = getattr(u, 'userprofile', None)
+            role = up.role if up else ('Admin' if u.is_superuser else 'Employee')
+            emp = up.employee if up else None
+            data.append({
+                'id': u.id,
+                'username': u.username,
+                'email': u.email or '',
+                'role': role,
+                'employee': emp.id if emp else None,
+                'employee_name': emp.name if emp else None,
+                'employee_code': emp.employee_id if emp else None,
+            })
+        return Response(data)
+
     serializer = RegisterSerializer(data=request.data)
 
     if serializer.is_valid():
@@ -342,9 +371,13 @@ def register_user(request):
 
         return Response(
             {
-                'message': 'Registration successful.',
+                'message': 'User registered successfully.',
                 'username': user.username,
-                'role': user.userprofile.role
+                'role': user.userprofile.role,
+                'employee': (
+                    user.userprofile.employee.id
+                    if user.userprofile.employee else None
+                ),
             },
             status=status.HTTP_201_CREATED
         )

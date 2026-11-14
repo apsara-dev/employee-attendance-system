@@ -1,14 +1,39 @@
 
+import os
+import random
+import re
 from django.db import models
 from django.contrib.auth.models import User
 
+# Default Company Code (can be changed here or via COMPANY_CODE in .env)
+COMPANY_CODE = os.getenv('COMPANY_CODE', 'EMP')
+
+
+def generate_employee_id(name, company_code=None):
+    code = (company_code or COMPANY_CODE).strip().upper()
+    cleaned_name = re.sub(r'[^A-Za-z0-9]', '', name or '').upper()
+    name_prefix = (cleaned_name[:3]).ljust(3, 'X')
+
+    for _ in range(100):
+        random_digits = random.randint(1000, 9999)
+        candidate = f"{code}{random_digits}{name_prefix}"
+        if not Employee.objects.filter(employee_id=candidate).exists():
+            return candidate
+
+    return f"{code}{random.randint(1000, 9999)}{name_prefix}"
+
 
 class Employee(models.Model):
-    employee_id = models.CharField(max_length=20, unique=True)
+    employee_id = models.CharField(max_length=20, unique=True, blank=True)
     name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     department = models.CharField(max_length=100)
     joining_date = models.DateField()
+
+    def save(self, *args, **kwargs):
+        if not self.employee_id:
+            self.employee_id = generate_employee_id(self.name)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
