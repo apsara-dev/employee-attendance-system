@@ -54,6 +54,31 @@ function App() {
   const [activeSection, setActiveSection] = useState('dashboard')
   const [randomDigits, setRandomDigits] = useState(() => generateRandom4Digits())
 
+  // Custom Toast Alerts & Confirmation Modal state
+  const [toasts, setToasts] = useState([])
+  const [confirmModal, setConfirmModal] = useState(null)
+
+  const showToast = (message, type = 'success', title = '') => {
+    const id = Date.now() + Math.random()
+    const defaultTitle =
+      title ||
+      (type === 'success'
+        ? 'Success'
+        : type === 'error'
+        ? 'Error'
+        : 'Warning')
+
+    setToasts((prev) => [...prev, { id, message, type, title: defaultTitle }])
+
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((item) => item.id !== id))
+    }, 4000)
+  }
+
+  const dismissToast = (id) => {
+    setToasts((prev) => prev.filter((item) => item.id !== id))
+  }
+
   const [formData, setFormData] = useState({
     employee_id: buildAutoEmployeeId('', randomDigits),
     name: '',
@@ -137,24 +162,27 @@ function App() {
     }))
   }
 
-  const handleDeleteEmployee = async (employee) => {
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete ${employee.name}? This will also delete their attendance and leave records.`
-    )
-
-    if (!confirmDelete) {
-      return
-    }
-
-    try {
-      await axios.delete(`/api/employees/${employee.id}/`)
-      const response = await axios.get('/api/employees/')
-      setEmployees(response.data)
-      alert('Employee deleted successfully!')
-    } catch (error) {
-      console.error('Error deleting employee:', error)
-      alert('Could not delete employee. Please try again.')
-    }
+  const handleDeleteEmployee = (employee) => {
+    setConfirmModal({
+      title: 'Delete Employee',
+      message: `Are you sure you want to delete ${employee.name} (${employee.employee_id})? This will also delete their attendance and leave records.`,
+      confirmText: 'Yes, Delete',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await axios.delete(`/api/employees/${employee.id}/`)
+          const response = await axios.get('/api/employees/')
+          setEmployees(response.data)
+          showToast(
+            `Employee "${employee.name}" deleted successfully!`,
+            'success'
+          )
+        } catch (error) {
+          console.error('Error deleting employee:', error)
+          showToast('Could not delete employee. Please try again.', 'error')
+        }
+      },
+    })
   }
 
   const handleEditClick = (employee) => {
@@ -191,10 +219,10 @@ function App() {
         joining_date: '',
       })
 
-      alert('Employee updated successfully!')
+      showToast('Employee details updated successfully!', 'success')
     } catch (error) {
       console.error(error)
-      alert('Failed to update employee. Please check the details.')
+      showToast('Failed to update employee. Please check the details.', 'error')
     }
   }
 
@@ -208,7 +236,11 @@ function App() {
 
     try {
       await axios.post('/api/employees/', payload)
-      alert(`Employee added successfully with ID: ${payload.employee_id}`)
+      showToast(
+        `Employee added successfully with ID: ${payload.employee_id}`,
+        'success',
+        'Employee Created'
+      )
 
       const newDigits = generateRandom4Digits()
       setRandomDigits(newDigits)
@@ -226,7 +258,10 @@ function App() {
       setEmployees(response.data)
     } catch (error) {
       console.error('Error adding employee:', error)
-      alert('Could not add employee. Please check the details and try again.')
+      showToast(
+        'Could not add employee. Please check if email or ID already exists.',
+        'error'
+      )
     }
   }
 
@@ -256,9 +291,10 @@ function App() {
     try {
       const response = await axios.post('/api/register/', payload)
 
-      setRegisterSuccess(
-        `User "${response.data.username}" (${response.data.role}) registered successfully!`
-      )
+      const msg = `User "${response.data.username}" (${response.data.role}) registered successfully!`
+      setRegisterSuccess(msg)
+      showToast(msg, 'success', 'User Registered')
+
       setRegisterForm({
         username: '',
         email: '',
@@ -285,29 +321,39 @@ function App() {
         data?.employee?.[0] ||
         data?.password?.[0] ||
         'Could not register user. Please check the details and try again.'
-      alert(errorMsg)
+      showToast(errorMsg, 'error', 'Registration Failed')
     }
   }
 
-  const handleLeaveStatus = async (leaveId, newStatus) => {
+  const handleLeaveStatus = (leaveId, newStatus) => {
     const action = newStatus === 'Approved' ? 'approve' : 'reject'
 
-    if (!window.confirm(`Are you sure you want to ${action} this leave request?`)) {
-      return
-    }
-
-    try {
-      await axios.patch(`/api/leaves/${leaveId}/status/`, { status: newStatus })
-      const response = await axios.get('/api/leaves/')
-      setLeaves(response.data)
-      alert(`Leave request ${newStatus.toLowerCase()} successfully!`)
-    } catch (error) {
-      console.error('Error updating leave status:', error)
-      alert(
-        error.response?.data?.error ||
-          'Could not update leave status. Please try again.'
-      )
-    }
+    setConfirmModal({
+      title: `${newStatus === 'Approved' ? 'Approve' : 'Reject'} Leave Request`,
+      message: `Are you sure you want to ${action} this leave request?`,
+      confirmText: newStatus === 'Approved' ? 'Approve Leave' : 'Reject Leave',
+      variant: newStatus === 'Approved' ? 'primary' : 'danger',
+      onConfirm: async () => {
+        try {
+          await axios.patch(`/api/leaves/${leaveId}/status/`, {
+            status: newStatus,
+          })
+          const response = await axios.get('/api/leaves/')
+          setLeaves(response.data)
+          showToast(
+            `Leave request ${newStatus.toLowerCase()} successfully!`,
+            'success'
+          )
+        } catch (error) {
+          console.error('Error updating leave status:', error)
+          showToast(
+            error.response?.data?.error ||
+              'Could not update leave status. Please try again.',
+            'error'
+          )
+        }
+      },
+    })
   }
 
   const handleLeaveChange = (event) => {
@@ -321,7 +367,7 @@ function App() {
     event.preventDefault()
 
     if (leaveForm.end_date < leaveForm.start_date) {
-      alert('End date cannot be before start date.')
+      showToast('End date cannot be before start date.', 'warning')
       return
     }
 
@@ -344,10 +390,10 @@ function App() {
       })
 
       setShowLeaveForm(false)
-      alert('Leave request submitted successfully!')
+      showToast('Leave request submitted successfully!', 'success')
     } catch (error) {
       console.error('Error submitting leave request:', error)
-      alert('Could not submit leave request. Please check the details.')
+      showToast('Could not submit leave request. Please check the details.', 'error')
     }
   }
 
@@ -368,7 +414,7 @@ function App() {
         status: attendanceForm.status,
       })
 
-      alert('Attendance marked successfully!')
+      showToast('Attendance marked successfully!', 'success')
 
       const response = await axios.get('/api/attendance/')
       setAttendance(response.data)
@@ -382,8 +428,9 @@ function App() {
       setShowAttendanceForm(false)
     } catch (error) {
       console.error('Error marking attendance:', error)
-      alert(
-        'Could not mark attendance. Please check the details or whether attendance is already marked for this employee and date.'
+      showToast(
+        'Could not mark attendance. Attendance may already be marked for this employee and date.',
+        'error'
       )
     }
   }
@@ -420,32 +467,35 @@ function App() {
         status: 'Present',
       })
 
-      alert('Attendance updated successfully!')
+      showToast('Attendance updated successfully!', 'success')
     } catch (error) {
       console.error('Error updating attendance:', error)
-      alert('Could not update attendance. Please check the date and employee records.')
+      showToast(
+        'Could not update attendance. Please check the date and employee records.',
+        'error'
+      )
     }
   }
 
-  const handleDeleteAttendance = async (record) => {
-    const confirmDelete = window.confirm(
-      'Are you sure you want to delete this attendance record?'
-    )
-
-    if (!confirmDelete) {
-      return
-    }
-
-    try {
-      await axios.delete(`/api/attendance/${record.id}/`)
-      setAttendance((previousAttendance) =>
-        previousAttendance.filter((item) => item.id !== record.id)
-      )
-      alert('Attendance record deleted successfully!')
-    } catch (error) {
-      console.error('Error deleting attendance:', error)
-      alert('Could not delete attendance record. Please try again.')
-    }
+  const handleDeleteAttendance = (record) => {
+    setConfirmModal({
+      title: 'Delete Attendance Record',
+      message: `Are you sure you want to delete this attendance record for ${record.date}?`,
+      confirmText: 'Yes, Delete',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await axios.delete(`/api/attendance/${record.id}/`)
+          setAttendance((previousAttendance) =>
+            previousAttendance.filter((item) => item.id !== record.id)
+          )
+          showToast('Attendance record deleted successfully!', 'success')
+        } catch (error) {
+          console.error('Error deleting attendance:', error)
+          showToast('Could not delete attendance record. Please try again.', 'error')
+        }
+      },
+    })
   }
 
   const handleExportCSV = () => {
@@ -490,6 +540,7 @@ function App() {
     link.remove()
 
     URL.revokeObjectURL(url)
+    showToast(`Exported ${sortedAttendance.length} records to CSV!`, 'success')
   }
 
   useEffect(() => {
@@ -608,6 +659,81 @@ function App() {
 
   return (
     <div className="app-layout">
+      {/* Custom Toast Notifications */}
+      <div className="toast-container">
+        {toasts.map((toast) => (
+          <div key={toast.id} className={`custom-toast toast-${toast.type}`}>
+            <div className="toast-icon">
+              {toast.type === 'success'
+                ? '✓'
+                : toast.type === 'error'
+                ? '✕'
+                : '!'}
+            </div>
+            <div className="toast-body">
+              <p className="toast-title">{toast.title}</p>
+              <p className="toast-message">{toast.message}</p>
+            </div>
+            <button
+              type="button"
+              className="toast-close"
+              onClick={() => dismissToast(toast.id)}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Custom Confirmation Modal */}
+      {confirmModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => setConfirmModal(null)}
+        >
+          <div
+            className="confirm-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="confirm-modal-header">
+              <div
+                className={`confirm-modal-icon ${
+                  confirmModal.variant === 'primary' ? 'icon-primary' : ''
+                }`}
+              >
+                {confirmModal.variant === 'primary' ? '✓' : '!'}
+              </div>
+              <h3>{confirmModal.title}</h3>
+            </div>
+            <p>{confirmModal.message}</p>
+            <div className="confirm-modal-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => setConfirmModal(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={
+                  confirmModal.variant === 'primary'
+                    ? 'add-button'
+                    : 'btn-confirm-danger'
+                }
+                onClick={async () => {
+                  const action = confirmModal.onConfirm
+                  setConfirmModal(null)
+                  if (action) await action()
+                }}
+              >
+                {confirmModal.confirmText || 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <aside className="sidebar">
         <div>
           <div className="sidebar-brand">

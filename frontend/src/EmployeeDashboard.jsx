@@ -22,11 +22,33 @@ function EmployeeDashboard({ user, onLogout }) {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
   const [showLeaveForm, setShowLeaveForm] = useState(false)
+  const [toasts, setToasts] = useState([])
   const [leaveForm, setLeaveForm] = useState({
     start_date: '',
     end_date: '',
     reason: '',
   })
+
+  const showToast = (message, type = 'success', title = '') => {
+    const id = Date.now() + Math.random()
+    const defaultTitle =
+      title ||
+      (type === 'success'
+        ? 'Success'
+        : type === 'error'
+        ? 'Error'
+        : 'Warning')
+
+    setToasts((prev) => [...prev, { id, message, type, title: defaultTitle }])
+
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((item) => item.id !== id))
+    }, 4000)
+  }
+
+  const dismissToast = (id) => {
+    setToasts((prev) => prev.filter((item) => item.id !== id))
+  }
 
   const token = localStorage.getItem('accessToken')
 
@@ -67,7 +89,7 @@ function EmployeeDashboard({ user, onLogout }) {
     event.preventDefault()
 
     if (leaveForm.end_date < leaveForm.start_date) {
-      alert('End date cannot be before start date.')
+      showToast('End date cannot be before start date.', 'warning')
       return
     }
 
@@ -81,12 +103,13 @@ function EmployeeDashboard({ user, onLogout }) {
       setLeaveForm({ start_date: '', end_date: '', reason: '' })
       setShowLeaveForm(false)
       await fetchData()
-      alert('Leave request submitted successfully!')
+      showToast('Leave request submitted successfully!', 'success')
     } catch (error) {
       console.error('Error submitting leave:', error)
-      alert(
+      showToast(
         error.response?.data?.error ||
-          'Could not submit leave request. Please make sure your user account is linked to an employee profile.'
+          'Could not submit leave request. Please make sure your user account is linked to an employee profile.',
+        'error'
       )
     }
   }
@@ -98,6 +121,32 @@ function EmployeeDashboard({ user, onLogout }) {
 
   return (
     <div className="app-layout">
+      {/* Custom Toast Notifications */}
+      <div className="toast-container">
+        {toasts.map((toast) => (
+          <div key={toast.id} className={`custom-toast toast-${toast.type}`}>
+            <div className="toast-icon">
+              {toast.type === 'success'
+                ? '✓'
+                : toast.type === 'error'
+                ? '✕'
+                : '!'}
+            </div>
+            <div className="toast-body">
+              <p className="toast-title">{toast.title}</p>
+              <p className="toast-message">{toast.message}</p>
+            </div>
+            <button
+              type="button"
+              className="toast-close"
+              onClick={() => dismissToast(toast.id)}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+
       <aside className="sidebar">
         <div>
           <div className="sidebar-brand">
