@@ -94,6 +94,12 @@ class RegisterSerializer(serializers.ModelSerializer):
             user.is_staff = True
             user.save(update_fields=['is_staff'])
 
+        # If role is Employee and no employee was explicitly selected, try matching by email
+        if role == 'Employee' and employee is None and user.email:
+            matched_emp = Employee.objects.filter(email__iexact=user.email).first()
+            if matched_emp and not UserProfile.objects.filter(employee=matched_emp).exists():
+                employee = matched_emp
+
         UserProfile.objects.create(
             user=user,
             role=role,

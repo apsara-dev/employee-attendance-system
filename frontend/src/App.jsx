@@ -267,6 +267,23 @@ function App() {
 
   const handleRegisterChange = (event) => {
     const { name, value } = event.target
+
+    if (name === 'employee' && value) {
+      const selectedEmp = employees.find((e) => String(e.id) === String(value))
+      if (selectedEmp) {
+        setRegisterForm((prev) => ({
+          ...prev,
+          employee: value,
+          email: prev.email || selectedEmp.email || '',
+          username:
+            prev.username ||
+            selectedEmp.employee_id?.toLowerCase() ||
+            '',
+        }))
+        return
+      }
+    }
+
     setRegisterForm((prev) => ({
       ...prev,
       [name]: value,
