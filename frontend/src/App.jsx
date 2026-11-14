@@ -17,6 +17,33 @@ const buildAutoEmployeeId = (name, digits) => {
   return `${COMPANY_CODE}${digits}${first3Chars}`
 }
 
+const PAGE_META = {
+  dashboard: {
+    title: 'Dashboard Overview',
+    subtitle: 'Real-time summary of employees, daily attendance, and pending leave requests',
+  },
+  employees: {
+    title: 'Employee Directory',
+    subtitle: 'Add, edit, search, and manage all company employees',
+  },
+  'register-user': {
+    title: 'User Account Registration',
+    subtitle: 'Create and manage Admin and Employee login credentials',
+  },
+  attendance: {
+    title: 'Daily Attendance Management',
+    subtitle: 'Mark and manage daily employee attendance records',
+  },
+  leaves: {
+    title: 'Leave Management',
+    subtitle: 'Review, approve, or reject employee leave applications',
+  },
+  reports: {
+    title: 'Monthly Attendance Reports',
+    subtitle: 'Analyze monthly attendance trends and export CSV reports',
+  },
+}
+
 function App() {
   const [loggedInUser, setLoggedInUser] = useState(null)
   const [employees, setEmployees] = useState([])
@@ -36,7 +63,7 @@ function App() {
   })
 
   // Admin User Registration Form state
-  const [showRegisterForm, setShowRegisterForm] = useState(false)
+  const [showRegisterForm, setShowRegisterForm] = useState(true)
   const [registerSuccess, setRegisterSuccess] = useState('')
   const [registerForm, setRegisterForm] = useState({
     username: '',
@@ -140,6 +167,7 @@ function App() {
       joining_date: employee.joining_date,
     })
     setShowForm(true)
+    setActiveSection('employees')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -367,6 +395,8 @@ function App() {
       status: record.status,
     })
     setShowAttendanceForm(true)
+    setActiveSection('attendance')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleUpdateAttendance = async (event) => {
@@ -522,9 +552,8 @@ function App() {
     (record) => record.status === 'Absent'
   ).length
 
-  const pendingLeavesCount = leaves.filter(
-    (leave) => leave.status === 'Pending'
-  ).length
+  const pendingLeaves = leaves.filter((leave) => leave.status === 'Pending')
+  const pendingLeavesCount = pendingLeaves.length
 
   const monthlyAttendance = attendance.filter((record) => {
     const matchesMonth = record.date.startsWith(reportMonth)
@@ -570,17 +599,12 @@ function App() {
     return <EmployeeDashboard user={loggedInUser} onLogout={handleLogout} />
   }
 
-  const scrollToSection = (sectionId) => {
-    setActiveSection(sectionId)
-    if (sectionId === 'dashboard') {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    } else {
-      document.getElementById(sectionId)?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      })
-    }
+  const switchPage = (pageKey) => {
+    setActiveSection(pageKey)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+
+  const currentMeta = PAGE_META[activeSection] || PAGE_META.dashboard
 
   return (
     <div className="app-layout">
@@ -597,37 +621,37 @@ function App() {
           <nav className="sidebar-nav">
             <button
               className={activeSection === 'dashboard' ? 'active' : ''}
-              onClick={() => scrollToSection('dashboard')}
+              onClick={() => switchPage('dashboard')}
             >
               <span className="nav-icon">📊</span> Dashboard
             </button>
             <button
               className={activeSection === 'employees' ? 'active' : ''}
-              onClick={() => scrollToSection('employees')}
+              onClick={() => switchPage('employees')}
             >
               <span className="nav-icon">👥</span> Employees
             </button>
             <button
               className={activeSection === 'register-user' ? 'active' : ''}
-              onClick={() => scrollToSection('register-user')}
+              onClick={() => switchPage('register-user')}
             >
               <span className="nav-icon">🔐</span> Register User
             </button>
             <button
               className={activeSection === 'attendance' ? 'active' : ''}
-              onClick={() => scrollToSection('attendance')}
+              onClick={() => switchPage('attendance')}
             >
               <span className="nav-icon">📅</span> Attendance
             </button>
             <button
               className={activeSection === 'leaves' ? 'active' : ''}
-              onClick={() => scrollToSection('leaves')}
+              onClick={() => switchPage('leaves')}
             >
               <span className="nav-icon">📝</span> Leave Requests
             </button>
             <button
               className={activeSection === 'reports' ? 'active' : ''}
-              onClick={() => scrollToSection('reports')}
+              onClick={() => switchPage('reports')}
             >
               <span className="nav-icon">📈</span> Monthly Reports
             </button>
@@ -653,8 +677,8 @@ function App() {
       <div className="main-area">
         <header className="header">
           <div>
-            <h1>Employee Attendance System</h1>
-            <p>Manage employees, user accounts, attendance, and leave requests</p>
+            <h1>{currentMeta.title}</h1>
+            <p>{currentMeta.subtitle}</p>
           </div>
           <div className="header-badges">
             <span className="header-pill">Company Code: {COMPANY_CODE}</span>
@@ -670,816 +694,989 @@ function App() {
         </header>
 
         <main className="dashboard">
-          {/* KPI Summary Cards */}
-          <div className="cards">
-            <div className="card">
-              <h3>Total Employees</h3>
-              <p className="number">{employees.length}</p>
-            </div>
-            <div className="card card-success">
-              <h3>Present Today</h3>
-              <p className="number">{presentToday}</p>
-            </div>
-            <div className="card card-danger">
-              <h3>Absent Today</h3>
-              <p className="number">{absentToday}</p>
-            </div>
-            <div className="card card-warning">
-              <h3>Pending Leaves</h3>
-              <p className="number">{pendingLeavesCount}</p>
-            </div>
-          </div>
+          {/* PAGE 1: DASHBOARD OVERVIEW */}
+          {activeSection === 'dashboard' && (
+            <>
+              <div className="cards">
+                <div
+                  className="card"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => switchPage('employees')}
+                >
+                  <h3>Total Employees</h3>
+                  <p className="number">{employees.length}</p>
+                  <span className="field-hint">Click to manage directory →</span>
+                </div>
+                <div
+                  className="card card-success"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => switchPage('attendance')}
+                >
+                  <h3>Present Today</h3>
+                  <p className="number">{presentToday}</p>
+                  <span className="field-hint">View daily attendance →</span>
+                </div>
+                <div
+                  className="card card-danger"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => switchPage('attendance')}
+                >
+                  <h3>Absent Today</h3>
+                  <p className="number">{absentToday}</p>
+                  <span className="field-hint">View daily attendance →</span>
+                </div>
+                <div
+                  className="card card-warning"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => switchPage('leaves')}
+                >
+                  <h3>Pending Leaves</h3>
+                  <p className="number">{pendingLeavesCount}</p>
+                  <span className="field-hint">Review leave requests →</span>
+                </div>
+              </div>
 
-          {/* Add / Edit Employee Section */}
-          <section className="section" id="employees">
-            <div className="section-header">
-              <h2>Employee Directory ({filteredEmployees.length})</h2>
-              <button
-                type="button"
-                onClick={() => {
-                  const nextState = !showForm
-                  setShowForm(nextState)
-                  setEditingEmployee(null)
-                  const newDigits = generateRandom4Digits()
-                  setRandomDigits(newDigits)
-                  setFormData({
-                    employee_id: buildAutoEmployeeId('', newDigits),
-                    name: '',
-                    email: '',
-                    department: '',
-                    joining_date: '',
-                  })
-                }}
-                className="add-button"
-              >
-                {showForm ? 'Cancel' : '+ Add New Employee'}
-              </button>
-            </div>
-
-            {showForm && (
-              <form
-                className="employee-form"
-                onSubmit={
-                  editingEmployee ? handleUpdateEmployee : handleAddEmployee
-                }
-              >
-                <h3>{editingEmployee ? 'Edit Employee' : 'Add New Employee'}</h3>
-
-                <div className="form-grid">
-                  <div className="form-field">
-                    <label>Full Name</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      placeholder="Enter employee full name (e.g. Rahul)"
-                      required
-                    />
+              <div className="form-grid">
+                <section className="section">
+                  <div className="section-header">
+                    <h2>Today&apos;s Attendance ({todayAttendance.length})</h2>
+                    <button
+                      type="button"
+                      className="add-button"
+                      onClick={() => {
+                        setShowAttendanceForm(true)
+                        switchPage('attendance')
+                      }}
+                    >
+                      + Mark Attendance
+                    </button>
                   </div>
+                  <div className="table-wrapper">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Employee</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {todayAttendance.slice(0, 6).map((record) => {
+                          const emp = employees.find(
+                            (e) => e.id === record.employee
+                          )
+                          return (
+                            <tr key={record.id}>
+                              <td style={{ fontWeight: 600, color: '#0f172a' }}>
+                                {emp ? (
+                                  <>
+                                    <span className="emp-id-pill">
+                                      {emp.employee_id}
+                                    </span>{' '}
+                                    {emp.name}
+                                  </>
+                                ) : (
+                                  'Unknown'
+                                )}
+                              </td>
+                              <td>
+                                <span
+                                  className={`status-badge ${record.status.toLowerCase()}`}
+                                >
+                                  {record.status}
+                                </span>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                        {todayAttendance.length === 0 && (
+                          <tr>
+                            <td colSpan="2">
+                              No attendance marked for today yet.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
 
-                  <div className="form-field">
-                    <label>
-                      Employee ID (Auto-Generated: {COMPANY_CODE} + 4 Digits + 3 Name Chars)
-                    </label>
-                    <div className="id-preview-row">
+                <section className="section">
+                  <div className="section-header">
+                    <h2>Pending Leave Requests ({pendingLeaves.length})</h2>
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => switchPage('leaves')}
+                    >
+                      View All Leaves
+                    </button>
+                  </div>
+                  <div className="table-wrapper">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Employee</th>
+                          <th>Dates</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pendingLeaves.slice(0, 5).map((leave) => {
+                          const emp = employees.find(
+                            (e) => String(e.id) === String(leave.employee)
+                          )
+                          return (
+                            <tr key={leave.id}>
+                              <td style={{ fontWeight: 600, color: '#0f172a' }}>
+                                {emp ? emp.name : 'Unknown'}
+                              </td>
+                              <td>
+                                {leave.start_date} → {leave.end_date}
+                              </td>
+                              <td>
+                                <button
+                                  type="button"
+                                  className="btn-success"
+                                  onClick={() =>
+                                    handleLeaveStatus(leave.id, 'Approved')
+                                  }
+                                >
+                                  ✓ Approve
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-danger"
+                                  onClick={() =>
+                                    handleLeaveStatus(leave.id, 'Rejected')
+                                  }
+                                >
+                                  ✕ Reject
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                        {pendingLeaves.length === 0 && (
+                          <tr>
+                            <td colSpan="3">No pending leave requests.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              </div>
+            </>
+          )}
+
+          {/* PAGE 2: EMPLOYEES DIRECTORY */}
+          {activeSection === 'employees' && (
+            <section className="section">
+              <div className="section-header">
+                <h2>Employee Directory ({filteredEmployees.length})</h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextState = !showForm
+                    setShowForm(nextState)
+                    setEditingEmployee(null)
+                    const newDigits = generateRandom4Digits()
+                    setRandomDigits(newDigits)
+                    setFormData({
+                      employee_id: buildAutoEmployeeId('', newDigits),
+                      name: '',
+                      email: '',
+                      department: '',
+                      joining_date: '',
+                    })
+                  }}
+                  className="add-button"
+                >
+                  {showForm ? 'Cancel' : '+ Add New Employee'}
+                </button>
+              </div>
+
+              {showForm && (
+                <form
+                  className="employee-form"
+                  onSubmit={
+                    editingEmployee ? handleUpdateEmployee : handleAddEmployee
+                  }
+                >
+                  <h3>{editingEmployee ? 'Edit Employee' : 'Add New Employee'}</h3>
+
+                  <div className="form-grid">
+                    <div className="form-field">
+                      <label>Full Name</label>
                       <input
                         type="text"
-                        name="employee_id"
-                        className="id-preview-input"
-                        value={formData.employee_id}
-                        readOnly
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        placeholder="Enter employee full name (e.g. Rahul)"
                         required
                       />
-                      {!editingEmployee && (
-                        <button
-                          type="button"
-                          className="secondary-button"
-                          onClick={handleRegenerateId}
-                          title="Generate a new 4-digit number"
-                        >
-                          ↻ New ID
-                        </button>
-                      )}
                     </div>
-                    <span className="field-hint">
-                      Automatically generated as you type the employee&apos;s name.
-                    </span>
-                  </div>
 
-                  <div className="form-field">
-                    <label>Email Address</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      placeholder="employee@company.com"
-                      required
-                    />
-                  </div>
-
-                  <div className="form-field">
-                    <label>Department</label>
-                    <input
-                      type="text"
-                      name="department"
-                      value={formData.department}
-                      onChange={handleInputChange}
-                      placeholder="Example: Engineering, HR, Finance"
-                      required
-                    />
-                  </div>
-
-                  <div className="form-field">
-                    <label>Joining Date</label>
-                    <input
-                      type="date"
-                      name="joining_date"
-                      value={formData.joining_date}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <button type="submit" className="add-button">
-                    {editingEmployee ? 'Update Employee' : 'Save Employee'}
-                  </button>
-                </div>
-              </form>
-            )}
-
-            <div className="search-container">
-              <input
-                type="text"
-                placeholder="Search by name, employee ID, email, or department..."
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => setSearchTerm('')}
-                >
-                  Clear Search
-                </button>
-              )}
-            </div>
-
-            <div className="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Employee ID</th>
-                    <th>Full Name</th>
-                    <th>Email</th>
-                    <th>Department</th>
-                    <th>Joining Date</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedEmployees.map((employee) => (
-                    <tr key={employee.id}>
-                      <td>
-                        <span className="emp-id-pill">{employee.employee_id}</span>
-                      </td>
-                      <td style={{ fontWeight: 600, color: '#0f172a' }}>
-                        {employee.name}
-                      </td>
-                      <td>{employee.email}</td>
-                      <td>
-                        <span className="dept-badge">{employee.department}</span>
-                      </td>
-                      <td>{employee.joining_date}</td>
-                      <td>
-                        <button
-                          type="button"
-                          onClick={() => handleEditClick(employee)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-danger"
-                          onClick={() => handleDeleteEmployee(employee)}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredEmployees.length === 0 && (
-                    <tr>
-                      <td colSpan="6">
-                        No employees found matching your search.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          {/* Admin-Only User Registration Section */}
-          <section className="section" id="register-user">
-            <div className="section-header">
-              <div>
-                <h2>User Account Registration (Admin Only)</h2>
-                <p className="field-hint">
-                  Only existing logged-in Admins can register new Admin or Employee login accounts.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="add-button"
-                onClick={() => {
-                  setShowRegisterForm(!showRegisterForm)
-                  setRegisterSuccess('')
-                }}
-              >
-                {showRegisterForm ? 'Cancel' : '+ Register New User'}
-              </button>
-            </div>
-
-            {registerSuccess && (
-              <div className="alert-success">{registerSuccess}</div>
-            )}
-
-            {showRegisterForm && (
-              <form onSubmit={handleRegisterUser} className="employee-form">
-                <h3>Create Login Account</h3>
-
-                <div className="form-grid">
-                  <div className="form-field">
-                    <label>Username</label>
-                    <input
-                      type="text"
-                      name="username"
-                      value={registerForm.username}
-                      onChange={handleRegisterChange}
-                      placeholder="Enter login username"
-                      required
-                    />
-                  </div>
-
-                  <div className="form-field">
-                    <label>Email Address</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={registerForm.email}
-                      onChange={handleRegisterChange}
-                      placeholder="user@company.com"
-                      required
-                    />
-                  </div>
-
-                  <div className="form-field">
-                    <label>Password</label>
-                    <input
-                      type="password"
-                      name="password"
-                      value={registerForm.password}
-                      onChange={handleRegisterChange}
-                      placeholder="Create a strong password"
-                      required
-                    />
-                  </div>
-
-                  <div className="form-field">
-                    <label>Account Role</label>
-                    <select
-                      name="role"
-                      value={registerForm.role}
-                      onChange={handleRegisterChange}
-                      required
-                    >
-                      <option value="Employee">Employee</option>
-                      <option value="Admin">Admin</option>
-                    </select>
-                  </div>
-
-                  {registerForm.role === 'Employee' && (
                     <div className="form-field">
-                      <label>Link to Employee Record (Optional)</label>
-                      <select
-                        name="employee"
-                        value={registerForm.employee}
-                        onChange={handleRegisterChange}
-                      >
-                        <option value="">-- Select Employee Profile --</option>
-                        {employees.map((emp) => (
-                          <option key={emp.id} value={emp.id}>
-                            {emp.employee_id} - {emp.name} ({emp.department})
-                          </option>
-                        ))}
-                      </select>
+                      <label>
+                        Employee ID (Auto: {COMPANY_CODE} + 4 Digits + 3 Name Chars)
+                      </label>
+                      <div className="id-preview-row">
+                        <input
+                          type="text"
+                          name="employee_id"
+                          className="id-preview-input"
+                          value={formData.employee_id}
+                          readOnly
+                          required
+                        />
+                        {!editingEmployee && (
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={handleRegenerateId}
+                            title="Generate a new 4-digit number"
+                          >
+                            ↻ New ID
+                          </button>
+                        )}
+                      </div>
                       <span className="field-hint">
-                        Linking allows this employee to view their attendance & leaves on login.
+                        Automatically generated as you type the employee&apos;s name.
                       </span>
                     </div>
-                  )}
-                </div>
 
-                <div>
-                  <button type="submit" className="add-button">
-                    Register User Account
+                    <div className="form-field">
+                      <label>Email Address</label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        placeholder="employee@company.com"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label>Department</label>
+                      <input
+                        type="text"
+                        name="department"
+                        value={formData.department}
+                        onChange={handleInputChange}
+                        placeholder="Example: Engineering, HR, Finance"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label>Joining Date</label>
+                      <input
+                        type="date"
+                        name="joining_date"
+                        value={formData.joining_date}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <button type="submit" className="add-button">
+                      {editingEmployee ? 'Update Employee' : 'Save Employee'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              <div className="search-container">
+                <input
+                  type="text"
+                  placeholder="Search by name, employee ID, email, or department..."
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => setSearchTerm('')}
+                  >
+                    Clear Search
                   </button>
-                </div>
-              </form>
-            )}
-
-            {registeredUsers.length > 0 && (
-              <>
-                <h3>Registered User Accounts ({registeredUsers.length})</h3>
-                <div className="table-wrapper">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Username</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Linked Employee</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {registeredUsers.map((u) => (
-                        <tr key={u.id}>
-                          <td style={{ fontWeight: 600, color: '#0f172a' }}>
-                            {u.username}
-                          </td>
-                          <td>{u.email || '—'}</td>
-                          <td>
-                            <span
-                              className={`status-badge ${
-                                u.role === 'Admin' ? 'approved' : 'pending'
-                              }`}
-                            >
-                              {u.role}
-                            </span>
-                          </td>
-                          <td>
-                            {u.employee_code ? (
-                              <>
-                                <span className="emp-id-pill">
-                                  {u.employee_code}
-                                </span>{' '}
-                                {u.employee_name}
-                              </>
-                            ) : (
-                              'Not Linked'
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-          </section>
-
-          {/* Daily Attendance Section */}
-          <section className="section" id="attendance">
-            <div className="section-header">
-              <h2>Daily Attendance Management</h2>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={handleExportCSV}
-                >
-                  ⬇ Export CSV
-                </button>
-                <button
-                  type="button"
-                  className="add-button"
-                  onClick={() => {
-                    setShowAttendanceForm(!showAttendanceForm)
-                    setEditingAttendance(null)
-                  }}
-                >
-                  {showAttendanceForm ? 'Cancel' : '+ Mark Attendance'}
-                </button>
+                )}
               </div>
-            </div>
 
-            {showAttendanceForm && (
-              <form
-                onSubmit={
-                  editingAttendance
-                    ? handleUpdateAttendance
-                    : handleMarkAttendance
-                }
-                className="employee-form"
-              >
-                <h3>
-                  {editingAttendance ? 'Edit Attendance' : 'Mark Daily Attendance'}
-                </h3>
-
-                <div className="form-grid">
-                  <div className="form-field">
-                    <label>Select Employee</label>
-                    <select
-                      name="employee"
-                      value={
-                        editingAttendance
-                          ? String(editingAttendance.employee)
-                          : attendanceForm.employee
-                      }
-                      onChange={handleAttendanceChange}
-                      disabled={Boolean(editingAttendance)}
-                      required
-                    >
-                      <option value="">Choose an employee</option>
-                      {employees.map((employee) => (
-                        <option key={employee.id} value={employee.id}>
-                          {employee.employee_id} - {employee.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-field">
-                    <label>Attendance Date</label>
-                    <input
-                      type="date"
-                      name="date"
-                      value={
-                        editingAttendance
-                          ? attendanceEditForm.date
-                          : attendanceForm.date
-                      }
-                      onChange={(event) => {
-                        if (editingAttendance) {
-                          setAttendanceEditForm({
-                            ...attendanceEditForm,
-                            date: event.target.value,
-                          })
-                        } else {
-                          handleAttendanceChange(event)
-                        }
-                      }}
-                      required
-                    />
-                  </div>
-
-                  <div className="form-field">
-                    <label>Status</label>
-                    <select
-                      name="status"
-                      value={
-                        editingAttendance
-                          ? attendanceEditForm.status
-                          : attendanceForm.status
-                      }
-                      onChange={(event) => {
-                        if (editingAttendance) {
-                          setAttendanceEditForm({
-                            ...attendanceEditForm,
-                            status: event.target.value,
-                          })
-                        } else {
-                          handleAttendanceChange(event)
-                        }
-                      }}
-                      required
-                    >
-                      <option value="Present">Present</option>
-                      <option value="Absent">Absent</option>
-                      <option value="Late">Late</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <button type="submit" className="add-button">
-                    {editingAttendance ? 'Update Attendance' : 'Save Attendance'}
-                  </button>
-                </div>
-              </form>
-            )}
-
-            <div className="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Employee ID</th>
-                    <th>Employee Name</th>
-                    <th>Date</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {attendance.map((record) => {
-                    const employee = employees.find(
-                      (item) => item.id === record.employee
-                    )
-
-                    return (
-                      <tr key={record.id}>
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Employee ID</th>
+                      <th>Full Name</th>
+                      <th>Email</th>
+                      <th>Department</th>
+                      <th>Joining Date</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedEmployees.map((employee) => (
+                      <tr key={employee.id}>
                         <td>
-                          <span className="emp-id-pill">
-                            {employee ? employee.employee_id : 'Unknown'}
-                          </span>
+                          <span className="emp-id-pill">{employee.employee_id}</span>
                         </td>
                         <td style={{ fontWeight: 600, color: '#0f172a' }}>
-                          {employee ? employee.name : 'Unknown'}
+                          {employee.name}
                         </td>
-                        <td>{record.date}</td>
+                        <td>{employee.email}</td>
                         <td>
-                          <span
-                            className={`status-badge ${record.status.toLowerCase()}`}
-                          >
-                            {record.status}
-                          </span>
+                          <span className="dept-badge">{employee.department}</span>
                         </td>
+                        <td>{employee.joining_date}</td>
                         <td>
                           <button
                             type="button"
-                            onClick={() => handleEditAttendanceClick(record)}
+                            onClick={() => handleEditClick(employee)}
                           >
                             Edit
                           </button>
                           <button
                             type="button"
                             className="btn-danger"
-                            onClick={() => handleDeleteAttendance(record)}
+                            onClick={() => handleDeleteEmployee(employee)}
                           >
                             Delete
                           </button>
                         </td>
                       </tr>
-                    )
-                  })}
+                    ))}
+                    {filteredEmployees.length === 0 && (
+                      <tr>
+                        <td colSpan="6">
+                          No employees found matching your search.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
 
-                  {attendance.length === 0 && (
+          {/* PAGE 3: ADMIN-ONLY USER REGISTRATION */}
+          {activeSection === 'register-user' && (
+            <section className="section">
+              <div className="section-header">
+                <div>
+                  <h2>User Account Registration (Admin Only)</h2>
+                  <p className="field-hint">
+                    Only existing logged-in Admins can register new Admin or Employee login accounts.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="add-button"
+                  onClick={() => {
+                    setShowRegisterForm(!showRegisterForm)
+                    setRegisterSuccess('')
+                  }}
+                >
+                  {showRegisterForm ? 'Hide Form' : '+ Register New User'}
+                </button>
+              </div>
+
+              {registerSuccess && (
+                <div className="alert-success">{registerSuccess}</div>
+              )}
+
+              {showRegisterForm && (
+                <form onSubmit={handleRegisterUser} className="employee-form">
+                  <h3>Create Login Account</h3>
+
+                  <div className="form-grid">
+                    <div className="form-field">
+                      <label>Username</label>
+                      <input
+                        type="text"
+                        name="username"
+                        value={registerForm.username}
+                        onChange={handleRegisterChange}
+                        placeholder="Enter login username"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label>Email Address</label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={registerForm.email}
+                        onChange={handleRegisterChange}
+                        placeholder="user@company.com"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label>Password</label>
+                      <input
+                        type="password"
+                        name="password"
+                        value={registerForm.password}
+                        onChange={handleRegisterChange}
+                        placeholder="Create a strong password"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label>Account Role</label>
+                      <select
+                        name="role"
+                        value={registerForm.role}
+                        onChange={handleRegisterChange}
+                        required
+                      >
+                        <option value="Employee">Employee</option>
+                        <option value="Admin">Admin</option>
+                      </select>
+                    </div>
+
+                    {registerForm.role === 'Employee' && (
+                      <div className="form-field">
+                        <label>Link to Employee Record (Optional)</label>
+                        <select
+                          name="employee"
+                          value={registerForm.employee}
+                          onChange={handleRegisterChange}
+                        >
+                          <option value="">-- Select Employee Profile --</option>
+                          {employees.map((emp) => (
+                            <option key={emp.id} value={emp.id}>
+                              {emp.employee_id} - {emp.name} ({emp.department})
+                            </option>
+                          ))}
+                        </select>
+                        <span className="field-hint">
+                          Linking allows this employee to view their attendance & leaves on login.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <button type="submit" className="add-button">
+                      Register User Account
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              <h3>Registered User Accounts ({registeredUsers.length})</h3>
+              <div className="table-wrapper">
+                <table>
+                  <thead>
                     <tr>
-                      <td colSpan="5">No attendance records found.</td>
+                      <th>Username</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Linked Employee</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                  </thead>
+                  <tbody>
+                    {registeredUsers.map((u) => (
+                      <tr key={u.id}>
+                        <td style={{ fontWeight: 600, color: '#0f172a' }}>
+                          {u.username}
+                        </td>
+                        <td>{u.email || '—'}</td>
+                        <td>
+                          <span
+                            className={`status-badge ${
+                              u.role === 'Admin' ? 'approved' : 'pending'
+                            }`}
+                          >
+                            {u.role}
+                          </span>
+                        </td>
+                        <td>
+                          {u.employee_code ? (
+                            <>
+                              <span className="emp-id-pill">
+                                {u.employee_code}
+                              </span>{' '}
+                              {u.employee_name}
+                            </>
+                          ) : (
+                            'Not Linked'
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {registeredUsers.length === 0 && (
+                      <tr>
+                        <td colSpan="4">No user accounts found.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
 
-          {/* Leave Management Section */}
-          <section className="section" id="leaves">
-            <div className="section-header">
-              <h2>Leave Management</h2>
-              <button
-                type="button"
-                className="add-button"
-                onClick={() => setShowLeaveForm(!showLeaveForm)}
-              >
-                {showLeaveForm ? 'Cancel' : '+ Apply for Leave'}
-              </button>
-            </div>
+          {/* PAGE 4: DAILY ATTENDANCE */}
+          {activeSection === 'attendance' && (
+            <section className="section">
+              <div className="section-header">
+                <h2>Daily Attendance Records ({attendance.length})</h2>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={handleExportCSV}
+                  >
+                    ⬇ Export CSV
+                  </button>
+                  <button
+                    type="button"
+                    className="add-button"
+                    onClick={() => {
+                      setShowAttendanceForm(!showAttendanceForm)
+                      setEditingAttendance(null)
+                    }}
+                  >
+                    {showAttendanceForm ? 'Cancel' : '+ Mark Attendance'}
+                  </button>
+                </div>
+              </div>
 
-            {showLeaveForm && (
-              <form onSubmit={handleSubmitLeave} className="employee-form">
-                <h3>Submit Leave Request</h3>
+              {showAttendanceForm && (
+                <form
+                  onSubmit={
+                    editingAttendance
+                      ? handleUpdateAttendance
+                      : handleMarkAttendance
+                  }
+                  className="employee-form"
+                >
+                  <h3>
+                    {editingAttendance ? 'Edit Attendance' : 'Mark Daily Attendance'}
+                  </h3>
 
-                <div className="form-grid">
-                  <div className="form-field">
-                    <label>Select Employee</label>
-                    <select
-                      name="employee"
-                      value={leaveForm.employee}
-                      onChange={handleLeaveChange}
-                      required
-                    >
-                      <option value="">Choose an employee</option>
-                      {employees.map((employee) => (
-                        <option key={employee.id} value={employee.id}>
-                          {employee.employee_id} - {employee.name}
-                        </option>
-                      ))}
-                    </select>
+                  <div className="form-grid">
+                    <div className="form-field">
+                      <label>Select Employee</label>
+                      <select
+                        name="employee"
+                        value={
+                          editingAttendance
+                            ? String(editingAttendance.employee)
+                            : attendanceForm.employee
+                        }
+                        onChange={handleAttendanceChange}
+                        disabled={Boolean(editingAttendance)}
+                        required
+                      >
+                        <option value="">Choose an employee</option>
+                        {employees.map((employee) => (
+                          <option key={employee.id} value={employee.id}>
+                            {employee.employee_id} - {employee.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-field">
+                      <label>Attendance Date</label>
+                      <input
+                        type="date"
+                        name="date"
+                        value={
+                          editingAttendance
+                            ? attendanceEditForm.date
+                            : attendanceForm.date
+                        }
+                        onChange={(event) => {
+                          if (editingAttendance) {
+                            setAttendanceEditForm({
+                              ...attendanceEditForm,
+                              date: event.target.value,
+                            })
+                          } else {
+                            handleAttendanceChange(event)
+                          }
+                        }}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label>Status</label>
+                      <select
+                        name="status"
+                        value={
+                          editingAttendance
+                            ? attendanceEditForm.status
+                            : attendanceForm.status
+                        }
+                        onChange={(event) => {
+                          if (editingAttendance) {
+                            setAttendanceEditForm({
+                              ...attendanceEditForm,
+                              status: event.target.value,
+                            })
+                          } else {
+                            handleAttendanceChange(event)
+                          }
+                        }}
+                        required
+                      >
+                        <option value="Present">Present</option>
+                        <option value="Absent">Absent</option>
+                        <option value="Late">Late</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <button type="submit" className="add-button">
+                      {editingAttendance ? 'Update Attendance' : 'Save Attendance'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Employee ID</th>
+                      <th>Employee Name</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attendance.map((record) => {
+                      const employee = employees.find(
+                        (item) => item.id === record.employee
+                      )
+
+                      return (
+                        <tr key={record.id}>
+                          <td>
+                            <span className="emp-id-pill">
+                              {employee ? employee.employee_id : 'Unknown'}
+                            </span>
+                          </td>
+                          <td style={{ fontWeight: 600, color: '#0f172a' }}>
+                            {employee ? employee.name : 'Unknown'}
+                          </td>
+                          <td>{record.date}</td>
+                          <td>
+                            <span
+                              className={`status-badge ${record.status.toLowerCase()}`}
+                            >
+                              {record.status}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              onClick={() => handleEditAttendanceClick(record)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-danger"
+                              onClick={() => handleDeleteAttendance(record)}
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+
+                    {attendance.length === 0 && (
+                      <tr>
+                        <td colSpan="5">No attendance records found.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {/* PAGE 5: LEAVE MANAGEMENT */}
+          {activeSection === 'leaves' && (
+            <section className="section">
+              <div className="section-header">
+                <h2>Leave Applications ({leaves.length})</h2>
+                <button
+                  type="button"
+                  className="add-button"
+                  onClick={() => setShowLeaveForm(!showLeaveForm)}
+                >
+                  {showLeaveForm ? 'Cancel' : '+ Apply for Leave'}
+                </button>
+              </div>
+
+              {showLeaveForm && (
+                <form onSubmit={handleSubmitLeave} className="employee-form">
+                  <h3>Submit Leave Request</h3>
+
+                  <div className="form-grid">
+                    <div className="form-field">
+                      <label>Select Employee</label>
+                      <select
+                        name="employee"
+                        value={leaveForm.employee}
+                        onChange={handleLeaveChange}
+                        required
+                      >
+                        <option value="">Choose an employee</option>
+                        {employees.map((employee) => (
+                          <option key={employee.id} value={employee.id}>
+                            {employee.employee_id} - {employee.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-field">
+                      <label>Start Date</label>
+                      <input
+                        type="date"
+                        name="start_date"
+                        value={leaveForm.start_date}
+                        onChange={handleLeaveChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label>End Date</label>
+                      <input
+                        type="date"
+                        name="end_date"
+                        value={leaveForm.end_date}
+                        onChange={handleLeaveChange}
+                        min={leaveForm.start_date || undefined}
+                        required
+                      />
+                    </div>
                   </div>
 
                   <div className="form-field">
-                    <label>Start Date</label>
-                    <input
-                      type="date"
-                      name="start_date"
-                      value={leaveForm.start_date}
+                    <label>Reason for Leave</label>
+                    <textarea
+                      name="reason"
+                      value={leaveForm.reason}
                       onChange={handleLeaveChange}
+                      placeholder="Enter the reason for leave"
                       required
                     />
                   </div>
 
-                  <div className="form-field">
-                    <label>End Date</label>
-                    <input
-                      type="date"
-                      name="end_date"
-                      value={leaveForm.end_date}
-                      onChange={handleLeaveChange}
-                      min={leaveForm.start_date || undefined}
-                      required
-                    />
+                  <div>
+                    <button type="submit" className="add-button">
+                      Submit Leave Request
+                    </button>
                   </div>
+                </form>
+              )}
+
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Employee</th>
+                      <th>Start Date</th>
+                      <th>End Date</th>
+                      <th>Reason</th>
+                      <th>Status / Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaves.map((leave) => {
+                      const employee = employees.find(
+                        (item) => String(item.id) === String(leave.employee)
+                      )
+
+                      return (
+                        <tr key={leave.id}>
+                          <td style={{ fontWeight: 600, color: '#0f172a' }}>
+                            {employee ? (
+                              <>
+                                <span className="emp-id-pill">
+                                  {employee.employee_id}
+                                </span>{' '}
+                                {employee.name}
+                              </>
+                            ) : (
+                              'Unknown'
+                            )}
+                          </td>
+                          <td>{leave.start_date}</td>
+                          <td>{leave.end_date}</td>
+                          <td>{leave.reason}</td>
+                          <td>
+                            {leave.status === 'Pending' ? (
+                              <>
+                                <button
+                                  type="button"
+                                  className="btn-success"
+                                  onClick={() =>
+                                    handleLeaveStatus(leave.id, 'Approved')
+                                  }
+                                >
+                                  ✓ Approve
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-danger"
+                                  onClick={() =>
+                                    handleLeaveStatus(leave.id, 'Rejected')
+                                  }
+                                >
+                                  ✕ Reject
+                                </button>
+                              </>
+                            ) : (
+                              <span
+                                className={`status-badge ${leave.status.toLowerCase()}`}
+                              >
+                                {leave.status}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+
+                    {leaves.length === 0 && (
+                      <tr>
+                        <td colSpan="5">No leave requests found.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {/* PAGE 6: MONTHLY ATTENDANCE REPORTS */}
+          {activeSection === 'reports' && (
+            <section className="section">
+              <div className="section-header">
+                <h2>Monthly Attendance Report</h2>
+                <button
+                  type="button"
+                  className="add-button"
+                  onClick={handleExportCSV}
+                >
+                  ⬇ Export Report CSV
+                </button>
+              </div>
+
+              <div className="form-grid" style={{ marginBottom: '22px' }}>
+                <div className="form-field">
+                  <label>Filter by Employee</label>
+                  <select
+                    value={reportEmployee}
+                    onChange={(event) => setReportEmployee(event.target.value)}
+                  >
+                    <option value="all">All Employees</option>
+                    {employees.map((employee) => (
+                      <option key={employee.id} value={String(employee.id)}>
+                        {employee.employee_id} - {employee.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="form-field">
-                  <label>Reason for Leave</label>
-                  <textarea
-                    name="reason"
-                    value={leaveForm.reason}
-                    onChange={handleLeaveChange}
-                    placeholder="Enter the reason for leave"
-                    required
+                  <label>Select Month</label>
+                  <input
+                    type="month"
+                    value={reportMonth}
+                    onChange={(event) => setReportMonth(event.target.value)}
                   />
                 </div>
+              </div>
 
-                <div>
-                  <button type="submit" className="add-button">
-                    Submit Leave Request
-                  </button>
+              <div className="cards">
+                <div className="card card-success">
+                  <h3>Present in {reportMonth}</h3>
+                  <p className="number">{presentInMonth}</p>
                 </div>
-              </form>
-            )}
+                <div className="card card-danger">
+                  <h3>Absent in {reportMonth}</h3>
+                  <p className="number">{absentInMonth}</p>
+                </div>
+                <div className="card card-warning">
+                  <h3>Late in {reportMonth}</h3>
+                  <p className="number">{lateInMonth}</p>
+                </div>
+              </div>
 
-            <div className="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Employee</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Reason</th>
-                    <th>Status / Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leaves.map((leave) => {
-                    const employee = employees.find(
-                      (item) => String(item.id) === String(leave.employee)
-                    )
+              <h3>Filtered Attendance Details ({monthlyAttendance.length})</h3>
 
-                    return (
-                      <tr key={leave.id}>
-                        <td style={{ fontWeight: 600, color: '#0f172a' }}>
-                          {employee ? (
-                            <>
-                              <span className="emp-id-pill">
-                                {employee.employee_id}
-                              </span>{' '}
-                              {employee.name}
-                            </>
-                          ) : (
-                            'Unknown'
-                          )}
-                        </td>
-                        <td>{leave.start_date}</td>
-                        <td>{leave.end_date}</td>
-                        <td>{leave.reason}</td>
-                        <td>
-                          {leave.status === 'Pending' ? (
-                            <>
-                              <button
-                                type="button"
-                                className="btn-success"
-                                onClick={() =>
-                                  handleLeaveStatus(leave.id, 'Approved')
-                                }
-                              >
-                                ✓ Approve
-                              </button>
-                              <button
-                                type="button"
-                                className="btn-danger"
-                                onClick={() =>
-                                  handleLeaveStatus(leave.id, 'Rejected')
-                                }
-                              >
-                                ✕ Reject
-                              </button>
-                            </>
-                          ) : (
-                            <span
-                              className={`status-badge ${leave.status.toLowerCase()}`}
-                            >
-                              {leave.status}
+              <div className="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Employee ID</th>
+                      <th>Employee Name</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monthlyAttendance.map((record) => {
+                      const employee = employees.find(
+                        (item) => String(item.id) === String(record.employee)
+                      )
+
+                      return (
+                        <tr key={record.id}>
+                          <td>
+                            <span className="emp-id-pill">
+                              {employee ? employee.employee_id : 'Unknown'}
                             </span>
-                          )}
-                        </td>
+                          </td>
+                          <td style={{ fontWeight: 600, color: '#0f172a' }}>
+                            {employee ? employee.name : 'Unknown'}
+                          </td>
+                          <td>{record.date}</td>
+                          <td>
+                            <span
+                              className={`status-badge ${record.status.toLowerCase()}`}
+                            >
+                              {record.status}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+
+                    {monthlyAttendance.length === 0 && (
+                      <tr>
+                        <td colSpan="4">No records found for this selection.</td>
                       </tr>
-                    )
-                  })}
-
-                  {leaves.length === 0 && (
-                    <tr>
-                      <td colSpan="5">No leave requests found.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          {/* Monthly Attendance Report Section */}
-          <section className="section" id="reports">
-            <div className="section-header">
-              <h2>Monthly Attendance Report</h2>
-            </div>
-
-            <div className="form-grid" style={{ marginBottom: '22px' }}>
-              <div className="form-field">
-                <label>Filter by Employee</label>
-                <select
-                  value={reportEmployee}
-                  onChange={(event) => setReportEmployee(event.target.value)}
-                >
-                  <option value="all">All Employees</option>
-                  {employees.map((employee) => (
-                    <option key={employee.id} value={String(employee.id)}>
-                      {employee.employee_id} - {employee.name}
-                    </option>
-                  ))}
-                </select>
+                    )}
+                  </tbody>
+                </table>
               </div>
-
-              <div className="form-field">
-                <label>Select Month</label>
-                <input
-                  type="month"
-                  value={reportMonth}
-                  onChange={(event) => setReportMonth(event.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="cards">
-              <div className="card card-success">
-                <h3>Present in {reportMonth}</h3>
-                <p className="number">{presentInMonth}</p>
-              </div>
-              <div className="card card-danger">
-                <h3>Absent in {reportMonth}</h3>
-                <p className="number">{absentInMonth}</p>
-              </div>
-              <div className="card card-warning">
-                <h3>Late in {reportMonth}</h3>
-                <p className="number">{lateInMonth}</p>
-              </div>
-            </div>
-
-            <h3>Filtered Attendance Details ({monthlyAttendance.length})</h3>
-
-            <div className="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Employee ID</th>
-                    <th>Employee Name</th>
-                    <th>Date</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {monthlyAttendance.map((record) => {
-                    const employee = employees.find(
-                      (item) => String(item.id) === String(record.employee)
-                    )
-
-                    return (
-                      <tr key={record.id}>
-                        <td>
-                          <span className="emp-id-pill">
-                            {employee ? employee.employee_id : 'Unknown'}
-                          </span>
-                        </td>
-                        <td style={{ fontWeight: 600, color: '#0f172a' }}>
-                          {employee ? employee.name : 'Unknown'}
-                        </td>
-                        <td>{record.date}</td>
-                        <td>
-                          <span
-                            className={`status-badge ${record.status.toLowerCase()}`}
-                          >
-                            {record.status}
-                          </span>
-                        </td>
-                      </tr>
-                    )
-                  })}
-
-                  {monthlyAttendance.length === 0 && (
-                    <tr>
-                      <td colSpan="4">No records found for this selection.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+            </section>
+          )}
         </main>
       </div>
     </div>
